@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penalty Trainer - Magnus Effect</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* UI PANEL KIRI */
+        #ui-container {
+            position: absolute; 
+            top: 10px; left: 10px; 
+            width: 280px;
+            background: rgba(0, 0, 0, 0.8); 
+            color: white; 
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 100;
+            max-height: 90vh;
+            overflow-y: auto; 
+        }
+
+        /* UI STATUS KANAN ATAS */
+        #info-container {
+            position: absolute; 
+            top: 10px; right: 10px; 
+            background: rgba(0, 0, 0, 0.85); 
+            color: white; 
+            padding: 15px 25px;
+            border-radius: 12px;
+            z-index: 100;
+            text-align: right;
+            min-width: 200px;
+        }
+
+        /* POPUP RUMUS (STATS) - Default Hidden */
+        #stats-modal {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 450px;
+            background: rgba(20, 30, 40, 0.95);
+            border: 2px solid #4CAF50;
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            z-index: 200;
+            display: none; /* Tersembunyi */
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+        }
+
+        /* KREDIT */
+        #identity-container {
+            position: absolute;
+            bottom: 10px; right: 10px; 
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 100;
+            font-size: 0.85em;
+            text-align: right;
+        }
+
+        /* UTILITIES */
+        h3 { margin-top: 0; text-align: center; color: #4CAF50; }
+        label { display: block; margin-top: 12px; font-size: 0.9em; color: #ccc; }
+        button, select, input { width: 100%; margin-top: 5px; padding: 8px; border-radius: 4px; border: none; }
+        button { cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { opacity: 0.8; }
+        .btn-group { display: flex; gap: 5px; }
+        .value-display { float: right; font-weight: bold; color: #ffff00; }
+        hr { border-color: #444; margin-top: 15px; }
+
+        /* Tombol Khusus */
+        #btn-shoot { background: #4CAF50; color: white; margin-top: 20px; font-size: 1.1em; }
+        #btn-reset { background: #f44336; color: white; margin-top: 10px; }
+        #btn-assist { background: #2196F3; color: white; margin-top: 5px; }
+        #btn-stats { background: #FF9800; color: white; margin-top: 10px; }
+        
+        /* Close Button untuk Modal */
+        .close-btn {
+            position: absolute; top: 10px; right: 15px;
+            color: #ff5555; font-weight: bold; cursor: pointer; font-size: 1.2em;
+        }
+        
+        .formula-box {
+            background: rgba(255,255,255,0.1);
+            padding: 10px; margin: 10px 0;
+            font-family: monospace; text-align: center; border: 1px solid #aaa;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-container">
+        <h3>⚽ Penalty Trainer</h3>
+        
+        <label style="color: #2196F3; font-weight: bold;">Fitur:</label>
+        <button onclick="toggleAimAssist()" id="btn-assist">Aim Assist: ON</button>
+        <button onclick="toggleStats()" id="btn-stats">📊 Stats & Rumus</button>
+
+        <hr>
+
+        <label>Lokasi (Langit & Fisika):</label>
+        <select id="planetSelect">
+            <option value="earth">Bumi (Grass & Blue Sky)</option>
+            <option value="moon">Bulan (Space)</option>
+            <option value="mars">Mars (Red Sky)</option>
+        </select>
+
+        <label>Posisi Start:</label>
+        <div class="btn-group">
+            <button onclick="setStartPos('left')">Kiri</button>
+            <button onclick="setStartPos('center')">Tengah</button>
+            <button onclick="setStartPos('right')">Kanan</button>
+        </div>
+
+        <label>Kekuatan (Speed): <span id="val-speed" class="value-display">35</span></label>
+        <input type="range" id="speed" min="15" max="60" value="35">
+
+        <label>Putaran (Spin): <span id="val-spin" class="value-display">20</span></label>
+        <input type="range" id="spin" min="-60" max="60" value="20">
+        <div style="font-size: 0.7em; color: #aaa; text-align: center;">
+            Kiri (-) &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp; Kanan (+)
+        </div>
+
+        <hr>
+        <label style="margin-top: 15px;">Arah Horizontal (Target X): <span id="val-targetX" class="value-display">0</span></label>
+        <input type="range" id="targetX" min="-20" max="20" step="0.1" value="0">
+        <div style="font-size: 0.7em; color: #aaa; text-align: center;">
+            Kiri Jauh (-) &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp; Kanan Jauh (+)
+        </div>
+
+        <label style="margin-top: 15px;">Sudut Elevasi (Target Y): <span id="val-targetY" class="value-display">2</span></label>
+        <input type="range" id="targetY" min="1" max="50" step="0.1" value="2">
+        <div style="font-size: 0.7em; color: #aaa; text-align: center;">
+            Rendah &nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp; Tinggi
+        </div>
+        <hr>
+
+        <label>💨 Kecepatan Angin: <span id="val-windSpeed" class="value-display">0</span></label>
+        <input type="range" id="windSpeed" min="0" max="20" step="0.1" value="0">
+
+        <label>🧭 Arah Angin:</label>
+        <select id="windDir">
+            <option value="0">Utara (Mendorong)</option>
+            <option value="90">Timur (Ke Kanan)</option>
+            <option value="180">Selatan (Melawan)</option>
+            <option value="270">Barat (Ke Kiri)</option>
+        </select>
+
+        <button id="btn-shoot" onclick="shootBall()">TEMBAK!</button>
+        <button id="btn-reset" onclick="resetBall()">RESET POSISI</button>
+    </div>
+
+    <div id="info-container">
+        <h2 id="game-status-text" style="margin:0; color:#00ff00;">SIAP!</h2>
+    </div>
+
+    <div id="stats-modal">
+        <span class="close-btn" onclick="toggleStats()">✕</span>
+        <h3 style="color:#FF9800;">Analisis Fisika</h3>
+        <p>Bola berbelok karena <b>Efek Magnus</b>.</p>
+        
+        <div class="formula-box">
+            F<sub>magnus</sub> = S (ω × v)
+        </div>
+        
+        <ul style="font-size: 0.9em; padding-left: 20px; line-height: 1.6;">
+            <li><b>S</b> : Koefisien Udara (Tergantung Planet)</li>
+            <li><b>ω (Omega)</b> : Kecepatan Putar Bola (Spin)</li>
+            <li><b>v</b> : Kecepatan Gerak Bola</li>
+            <li><b>×</b> : Cross Product (Menghasilkan arah tegak lurus)</li>
+        </ul>
+
+        <hr>
+        <div id="realtime-stats" style="font-size: 0.9em; color: #ffff00;">
+            Menunggu Data Tembakan...
+        </div>
+    </div>
+
+    <div id="identity-container">
+        <h4>Tim Pengembang</h4>
+        <ul>
+            <li><b>Rynofaldi Damario Dzaki</b> <br> NRP: 5025231042</li>
+            <li><b>Fakhri Abraar Wiryadisastra</b> <br> NRP: 5025231201</li>
+            <li><b>Ryan Marvin Sirait</b> <br> NRP: 502531215</li>
+        </ul>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module" src="./main.js"></script>
+</body>
+</html>
